@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vlakotýden</title>
+    <link rel="stylesheet" href="//necolas.github.io/normalize.css/8.0.1/normalize.css">
+    <link rel="stylesheet" href="//fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="//unpkg.com/pretty-checkbox/dist/pretty-checkbox.min.css">
+    <link rel="stylesheet" href="//unpkg.com/simplebar@5/dist/simplebar.css">
+    <style>
+
+/* Global CSS */
+
+:root {
+    --accent: blue;
+    --card-bg: #fcfcfc;
+    --card-fg: black;
+    --font-primary: Whitney, "Lato 2", Lato, "Droid Sans", "Ubuntu", "Roboto", "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-family: var(--font-primary)
+}
+
+/* Helper classes */
+
+.circle { border-radius: 100%; }
+.minor { opacity: 50%; }
+.nums { font-variant-numeric: tabular-nums; }
+[data-simplebar] { overflow: auto; }
+
+/* Normalize */
+
+* { box-sizing: border-box; }
+a { text-decoration: none; }
+ul { padding-inline-start: 2em; }
+small { opacity: 80%; }
+:link, :visited { color: #0066cc }
+
+blockquote, figure {
+    margin-inline-start: 2em;
+    margin-inline-end: 2em;
+}
+
+h1 {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .3em
+}
+
+pre {
+    background: #8881;
+    border: 0.1em solid #6665;
+    padding: 0.5em;
+    border-radius: 0.5em;
+}
+
+:not(pre)>code {
+    background: #8881;
+    border: 0.1em solid #6663;
+    padding: 0.15em 0.25em;
+    margin: 0.4em 0;
+    border-radius: 0.5em;
+    font-size-adjust: ic-height 0.8;
+}
+
+/* Main CSS */
+
+body {
+    background: #eee;
+    overflow-x: hidden;
+    min-width: 100vw;
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 2em;
+    margin: 0px;
+    padding: 0px;
+}
+
+#container {
+    display: grid;
+    min-width: 100vw;
+    min-height: 100vh;
+    min-height: 100dvh;
+    grid-template-areas:
+        "title   title" 
+        "preview preview" 
+        "cards    cards"
+        "footer  footer";
+    grid-template-rows:
+        auto
+        minmax(50vh, 1fr)
+        15rem
+        auto;
+    grid-template-columns: minmax(240px, 1fr) 1fr;
+    perspective: 100vmax;
+}
+
+#container>header { grid-area: title; }
+#container #preview { grid-area: preview; }
+#container #select { grid-area: select; }
+#container #deck { grid-area: deck; }
+#container #cards { grid-area: cards; }
+#container>footer { grid-area: footer; text-align: center; transform: translateY(-0.7em) }
+
+/* Card design */
+
+.card {
+    aspect-ratio: 1 / 1.4142;
+    --card-width: calc(var(--card-size) / 1.4142);
+    height: var(--card-size);
+    width: var(--card-width);
+    position: relative;
+    outline: calc(2px + var(--card-size) / 150) solid #333;
+    /* box-shadow: inset 0 0 0 calc(1px + var(--card-size) / 150) #333; */
+    color: var(--card-fg);
+    background: var(--card-bg);
+    border-radius: 7%/5%;
+    display: flex;
+    flex-direction: column;
+    padding: calc(var(--card-size) / 20);
+    font-size: calc(var(--card-size) / 30);
+    backface-visibility: hidden;
+    transform-style: preserve-3d;
+}
+
+.card::selection, .card *::selection {
+  background: palegoldenrod;
+  color: black;
+}
+
+.card :is(h1, h2, h3, h4, h5, h6) {
+    display: inline;
+    margin-block-start: unset;
+    margin-block-end: unset;
+}
+
+.card .material-icons {
+    font-size: 1em;
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: var(--card-fg);
+}
+
+.card-header .material-icons {
+    color: var(--card-fg);
+    font-size: 3em;
+}
+
+.card-body {
+    flex: 1;
+    overflow-x: hidden;
+    overflow-y: auto;
+    margin: 1rem 0;
+    height: 100%;
+}
+
+.card-body.justify p {
+    text-align: justify;
+}
+
+.card-body>*:is(:first-child, :last-child) {
+    margin-block-start: 0;
+}
+
+.card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+}
+
+/* Card preview */
+
+#preview {
+    display: grid;
+    place-items: center;
+    transform-style: preserve-3d;
+    transition: none;
+}
+
+#preview.flip {
+    transform: rotateY(1turn) !important;
+    transition: transform 800ms ease-in-out;
+}
+
+#preview .card {
+    --card-size: 60vmin;
+    margin: 10px;
+}
+
+#back {
+    display: grid;
+    place-items: center;
+}
+
+#back .card {
+    position: absolute;
+    top: 20px;
+    transform: rotateY(180deg);
+    background:linear-gradient(#eee, #ddd);
+}
+
+/* Card preview controls */
+
+#overlay {
+    position: absolute;
+    transform: scale(2.5);
+    font-size: 3em;
+    transform-origin: center right;
+    right: 3vw;
+    bottom: calc(var(--card-size) * 0.01);
+}
+
+/* Card deck */
+
+#cards {
+    --max-cards: 7;
+    --card-size: 12rem;
+    --card-width: calc(var(--card-size) / 1.4142);
+
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    align-items: center;
+    overflow-x: auto;
+    padding: 0 1rem;
+}
+
+#cards .card {
+    /* position: absolute;
+    left: calc(100% * (var(--pos) / var(--count))); */
+    transition: 100ms ease-out;
+    user-select: none;
+    cursor: pointer;
+}
+
+/* #cards .card[data-done="true"] {
+    filter: contrast(0.1) brightness(1.75);
+} */
+
+#cards .card::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    transform-origin: middle center;
+    background: radial-gradient(#44a2f5, #428bca);
+    transition: height 200ms ease-in;
+    width: 100%;
+    height: 0;
+    border-radius: 0 0 1.5em 1.5em;
+}
+
+#cards .card[data-done="true"]::after {
+    height: 4em;
+}
+
+#cards .card a {
+    pointer-events: none;
+}
+
+#cards .done {
+    opacity: 0%;
+}
+
+#cards .card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0px 10px 6px 4px #2222
+}
+
+@media screen and (max-width: 1024px) {
+    #preview .card {
+        --card-size: calc(100dvh - 24rem);
+    }
+
+    #cards {
+        gap: unset;
+        justify-content: flex-start;
+    }
+
+    #cards .card:not(:first-child) {
+        /* https://www.dcode.fr/linear-equation */
+        margin-left: calc(16.613vw - 164px);
+    }
+
+    #cards .card:hover ~ .card {
+        transform: translateX(calc(var(--card-width) / 3));
+    }
+}
+
+    </style>
+</head>
+<body>
+
+<main id="container">
+    <header><h1>Vlakotýden</h1></header>
+    <article id="preview">
+        <div id="flippy">
+            <div id="front"
+            data-tilt
+            data-tilt-max="3"
+            data-tilt-glare="true"
+            data-tilt-reverse="true"
+            data-tilt-max-glare="0.9"
+            data-tilt-gyroscope="false"
+            data-tilt-full-page-listening="false">
+                <div class="card" style="opacity: 0%">
+                </div>
+            </div>
+            <div id="back">
+                <div class="card"></div>
+            </div>
+        </div>
+    </article>
+    <!-- <aside id="deck">deck</aside> -->
+    <article id="cards"></article>
+    <footer></footer>
+</main>
+
+<!-- <div id="overlay">
+    <div id="done">
+        <input type="checkbox" name="cb" id="cb">
+    </div>
+</div> -->
+
+<template id="card-template">
+    <div class="card" style="--card-bg: {bg}; --card-fg: {fg}" data-id="{did}" data-done="{done}">
+        <div class="card-header" style="--card-fg: {hd}">
+            <h2 class="card-title">{title}</h2>
+            <div class="card-powerup material-icons">{powerup}</div>
+        </div>
+        <div class="card-body" data-simplebar>{body}</div>
+        <div class="card-footer">
+            <div class="done pretty p-round p-jelly">
+                <input type="checkbox" data-id="{did}" onclick="check(this)"/>
+                <div class="state p-primary">
+                    <label>Hotovo</label>
+                </div>
+            </div>
+            <div class="nums">{footer}</div>
+            <span class="card-id">{id}</span>
+        </div>
+    </div>
+</template>
+
+<script src="//unpkg.com/marked/marked.min.js"></script>
+<script src="//unpkg.com/js-crc/build/crc.min.js"></script>
+<script src="//unpkg.com/timeago.js/dist/timeago.min.js"></script>
+<script src="//unpkg.com/simplebar@5/dist/simplebar.min.js"></script>
+<script src="//unpkg.com/vanilla-tilt/dist/vanilla-tilt.min.js"></script>
+
+<script>
+
+function $(query) { return document.querySelector(query) }
+function $all(query) { return document.querySelectorAll(query) }
+
+const root = getComputedStyle(document.body)
+
+const deck = [
+    {
+        id: 0,
+        title: "První karta",
+        description: "Pro označení karty klikni dole na \"Hotovo\"!"
+    }, {
+        id: 1,
+        title: "Karta s formátováním",
+        description: `
+A tohle je popis. Právě mě napadá
+* Vůbec nic
+* Možná
+    - Ne
+
+<!--\`\`\`
+Meowdy!
+\`\`\`-->
+
+Můžeš sem psát v [Markdownu](https://www.markdownguide.org/basic-syntax).
+        `
+    }, {
+        id: 2,
+        title: "Karta s ikonou",
+        description: "Možná má **power-up**?\nIkony jsou dostupné z&nbsp;knihovny \
+        [Material icons](https://fonts.google.com/icons?icon.set=Material+Icons) \
+        od Google, jejichž jméno stačí napsat do políčka `icon` pro vložení do \
+        nadpisu, nebo pro vložení \
+        přímo do textu použij něco jako tohle:\n\n \
+\`\`\`\n<span class=\"material-icons\">\n     icon_name\n</span>\n\`\`\`",
+        icon: { image: "auto_awesome" }
+    }, {
+        id: 3,
+        title: "Karta se speciálními barvami",
+        description: "Pozadí, nadpisu, ikony i textu",
+        icon: { image: "palette", color: "purple" },
+        theme: { color: "aliceblue", text: "red", title: "blue" }
+    }, {
+        id: 4,
+        title: "Import a export dat",
+        description: "Sdílení názvů dokončených úloh příjde brzy.\n\n \
+        Opravdová data se nachází v localStorage ve formátu JSON."
+    }, {
+        title: "Karta bez ID",
+        description: "Ale pořád funguje!"
+    }, {
+        id: "🍳",
+        title: "Karta s hodně dlouhým nadpisem i textem",
+        description: "Když má karta hodně dlou&shy;hý text, zo&shy;bra&shy;zí se \
+        scroll&shy;bar, ale text mimo kartu nepře&shy;teče.\n\nNásle&shy;duje \
+        krátký úry&shy;vek z dnes už nefunkč&shy;ního Babica gene&shy;rátoru: \
+        <div style='text-align: justify'\>Nejzdravější ryba je v mase. Je to je \
+        fialovej. Asparágus je hotová. Nyní již se tam to do formy. Těsto je to \
+        kamarádi. Osolíme. Když to jednou nohou v druhé strany minutka. K tomu \
+        Jirka zvědavej, co jsme chtěli. Na polívku v hlavním jídle. Strouháme na \
+        brambory (asi kilo) na bramborák. Těsto je konkrétně bych řek co pálí, \
+        třeba solit, promíchá to. Je to ještě na speciálo. Přátelé, teď jedinou \
+        dražší věc: čerstvý parmazán nebo komu chutnají batáty, čili ocukrovaný \
+        brambory. Posypeme petrželkou. Je to bylo pro spořivé akorát. A na talířích. \
+        Miloš hraje na chuť, to začne křupat, je to nutný z toho žampióny, česnek, \
+        žampióny, jarní cibulku do ruky, pořádně, drůbež jí urodilo moc vody, je \
+        hotovo a maso plecko vepřové přihodit, Jirka drží! A nandaváme. Doprostřed \
+        rajčata, ředkvičky, jogurt, citrónová šťáva, maso dělat zrychla nebo meruňky. \
+        Na šest let a trošku prošpikovat, chytne ji to je z ryb napůl orestovat. \
+        I losos by to hrušky nakrájený rohlík, mlíko, olej. A malou paelovou pánev. \
+        Vlastně jsme to vynikající. Kuře stranou, do oleje, aby maso dělat i regulátor \
+        rychlosti. Je to paprikou, slaninkou, no trochu sádlo a koření: česnek, pepř, \
+        česnek projít tukem. A potom: šup s houbami. Lžíci</div>"
+    }
+].map(card => {
+    let c = card
+    if (c.id === undefined) c.id = crc32(JSON.stringify(card)), c.auto_id = true
+    return c
+})
+
+// Load progress or make new save
+let progress = JSON.parse(localStorage.getItem("vlakotyden-hotovo"))
+?? Object.fromEntries(deck.map(card => {return [card.id, false]}))
+
+// Prepare HTML code for each card
+function buildCard(card) {
+    return document.getElementById("card-template").innerHTML
+    .replace("{done}", progress[card.id]?.toString())
+    .replace("{title}", marked.parseInline(card.title ?? "?"))
+    .replace("{body}", marked.parse(card.description ?? ""))
+    .replace("{footer}", marked.parseInline(card.footer ?? card.auto_id ? `<small>${card.id.toUpperCase()}</small>` : ""))
+    .replace("{id}", "<span class='minor'>#&thinsp;</span>" + (!card.auto_id ? card.id : "?"))
+    .replaceAll("{did}", card.id ?? ( console.error("No ID found for card " + card) && uuid() ))
+    .replace("{powerup}", card.icon ? `<span style="color:${card.icon?.color ?? 'currentColor'}">${card.icon?.image}</span>` : "" )
+    .replace("{fg}", card.theme?.text ?? root.getPropertyValue("--card-fg"))
+    .replace("{hd}", card.theme?.title ?? root.getPropertyValue("--card-fg"))
+    .replace("{bg}", card.theme?.color ?? root.getPropertyValue("--card-bg"))
+}
+
+// Make an unique ID out of a timestamp
+function uuid() {
+    return Date.now().toString(36) + Math.random().toString(36).slice(1)
+}
+
+// Set the preview card to the clicked card
+async function replacePreview(id) {
+    console.log("Viewing", id)
+    const animationTime = 800 / 2
+    $("#preview").classList.toggle("flip")
+    setTimeout(() => {
+        setTimeout(() => $("#preview").classList.toggle("flip"), animationTime)
+        $("#front").innerHTML = buildCard(deck.find(card => card.id == id))
+        $("#front input").checked = progress[id]
+    }, animationTime)
+}
+
+// Plural forms in Czech
+function pluralize(number, singular, dual, plural) {
+    function _(string) { return " " + string }
+    function a(number) { return Math.abs(number) }
+    return number + ( a(number) == 1 ? _(singular) : (
+        2 <= a(number) && a(number) <= 4 ? _(dual) : _(plural)
+    ))
+}
+
+// Handle checkbox checks
+function check(context) {
+    const id = context.dataset.id
+    const done = context.checked
+    console.debug(id, done)
+    progress[id] = done
+    $(`#cards .card[data-id="${id}"]`).dataset.done = done
+    localStorage.setItem("vlakotyden-hotovo", JSON.stringify(progress))
+}
+
+// Run this once when the page loads
+document.addEventListener("DOMContentLoaded", async () => {
+    $("#cards").innerHTML = deck.map(card => buildCard(card)).join("\n")
+    $("footer").innerHTML = pluralize(deck.length, "karta", "karty", "karet")
+    + "&ensp;&centerdot;&ensp;By <a href='https://discordid.netlify.app/?id=189400498497912832'>Mato</a>"
+    replacePreview(deck[0].id)
+    $all("#cards .card").forEach(card => {
+        const id = card.dataset.id
+        card.addEventListener("click", () => replacePreview(id))
+    })
+})
+
+</script>
+
+</body>
+</html>
